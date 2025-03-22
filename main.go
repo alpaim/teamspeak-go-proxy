@@ -64,6 +64,8 @@ func main() {
 		log.Fatalf("Failed to resolve server address %q: %v", serverAddrStr, err)
 	}
 
+	log.Printf("Starting UDP proxy %s -> %s", proxyAddrStr, serverAddrStr)
+
 	var sessions sync.Map
 	go cleanupSessions(&sessions)
 
@@ -101,6 +103,7 @@ func handleClientPacket(data []byte, clientAddr *net.UDPAddr, proxyConn *net.UDP
 		}
 
 		sessions.Store(key, s)
+		log.Printf("New client connection from %s", clientAddr.String())
 		go runSessionServerReader(s, proxyConn, sessions)
 
 		rawSession = s
@@ -164,10 +167,13 @@ func runSessionServerReader(s *session, proxyConn *net.UDPConn, sessions *sync.M
 
 func cleanupSessions(sessions *sync.Map) {
 	for range time.Tick(1 * time.Minute) {
+		var activeCount int
+
 		sessions.Range(func(key, value interface{}) bool {
 			s := value.(*session)
 			s.mu.Lock()
 			inactive := time.Since(s.lastActive) > 5*time.Minute
+			activeCount++
 			s.mu.Unlock()
 
 			if inactive {
@@ -176,5 +182,6 @@ func cleanupSessions(sessions *sync.Map) {
 			}
 			return true
 		})
+		log.Printf("Connection stats - Active: %d", activeCount)
 	}
 }
