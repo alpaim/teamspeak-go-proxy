@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  ts3proxy:
+    container_name: ts-go-proxy
+    image: ghcr.io/alpaim/teamspeak-go-proxy:latest
+    ports:
+      - "9987:9987/udp"
+    networks:
+      - ts-go-proxy-net
+    environment:
+      - SERVER_ADDR=ts3.your-server.com:9987
+
+networks:
+  ts-go-proxy-net:
+    name: ts-go-proxy-net
